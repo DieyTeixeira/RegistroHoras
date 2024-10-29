@@ -1,5 +1,6 @@
 package com.dieyteixeira.registrohoras.repository
 
+import android.util.Log
 import com.dieyteixeira.registrohoras.datasource.DataSource
 import com.dieyteixeira.registrohoras.model.Registro
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +40,8 @@ class RegistrosRepository {
         )
     }
 
-    fun recuperarRegistro(): Flow<MutableList<Registro>> {
-        return dataSource.recuperarRegistro()
+    fun recuperarRegistro(data: String): Flow<MutableList<Registro>> {
+        Log.d("RegistrosRepository", "Iniciando recuperação de registros para a data: $data")
+        return dataSource.recuperarRegistro(data)
     }
 }

@@ -2,10 +2,12 @@ package com.dieyteixeira.registrohoras.ui.screen
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
@@ -28,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,12 +39,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dieyteixeira.registrohoras.R
+import com.dieyteixeira.registrohoras.model.Registro
 import com.dieyteixeira.registrohoras.repository.RegistrosRepository
 import com.dieyteixeira.registrohoras.ui.components.DatePickerCustom
 import com.dieyteixeira.registrohoras.ui.components.PeriodTime
@@ -49,10 +58,12 @@ import com.dieyteixeira.registrohoras.ui.components.formattedTime
 import com.dieyteixeira.registrohoras.ui.theme.Azul1
 import com.dieyteixeira.registrohoras.ui.theme.Azul2
 import com.dieyteixeira.registrohoras.ui.theme.Verde2
+import com.dieyteixeira.registrohoras.ui.theme.Vermelho
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+@SuppressLint("MutableCollectionMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -62,47 +73,36 @@ fun InsertScreen() {
     val context = LocalContext.current
     val registrosRepository = RegistrosRepository()
 
+    var registrosFiltrados by remember { mutableStateOf(emptyList<Registro>()) }
+
+    var deleteOption by remember { mutableStateOf(false) }
+
     // variáveis para salvar dados no banco de dados
     var dateSelected by remember { mutableStateOf(LocalDate.now()) }
     var dateRegistro by remember { mutableStateOf("") }
     var showCustomDatePicker by remember { mutableStateOf(false) }
-//    var times by remember { mutableStateOf(Array(4) { Pair("", "") }) } // Para inicial e final dos períodos (P1 a P4)
 
-    if (showCustomDatePicker) {
-        DatePickerCustom(
-            initialDate = dateSelected,
-            onDismissRequest = { showCustomDatePicker = false },
-            onCancelClick = { showCustomDatePicker = false },
-            onOKClick = { date ->
-                dateRegistro = date.toString()
-                dateSelected = date
-                showCustomDatePicker = false
-            }
-        )
-    }
+    // Inicializando arrays para armazenar tempos iniciais e finais
+    val initialTimes = remember { mutableStateOf(Array(4) { "" }) }
+    val finalTimes = remember { mutableStateOf(Array(4) { "" }) }
 
-    var initialTimeP1 by remember { mutableStateOf("") }
-    var finalTimeP1 by remember { mutableStateOf("") }
-    var initialTimeP2 by remember { mutableStateOf("") }
-    var finalTimeP2 by remember { mutableStateOf("") }
-    var initialTimeP3 by remember { mutableStateOf("") }
-    var finalTimeP3 by remember { mutableStateOf("") }
-    var initialTimeP4 by remember { mutableStateOf("") }
-    var finalTimeP4 by remember { mutableStateOf("") }
+    // Arrays para armazenar milissegundos
+    val initialMillis = remember { mutableStateOf(LongArray(4) { 0L }) }
+    val finalMillis = remember { mutableStateOf(LongArray(4) { 0L }) }
+    val calMillis = remember { mutableStateOf(LongArray(4) { 0L }) }
 
-    var initialMillisP1 by remember { mutableStateOf(0L) }
-    var finalMillisP1 by remember { mutableStateOf(0L) }
-    var calMillisP1 by remember { mutableStateOf(0L) }
-    var initialMillisP2 by remember { mutableStateOf(0L) }
-    var finalMillisP2 by remember { mutableStateOf(0L) }
-    var calMillisP2 by remember { mutableStateOf(0L) }
-    var initialMillisP3 by remember { mutableStateOf(0L) }
-    var finalMillisP3 by remember { mutableStateOf(0L) }
-    var calMillisP3 by remember { mutableStateOf(0L) }
-    var initialMillisP4 by remember { mutableStateOf(0L) }
-    var finalMillisP4 by remember { mutableStateOf(0L) }
-    var calMillisP4 by remember { mutableStateOf(0L) }
+    var sumMillisNormal by remember { mutableStateOf(0L) }
+    val (totalNormal, totalHoursN, totalMinutesN) = convertMillisToTime(sumMillisNormal)
 
+    var sumMillisExtra by remember { mutableStateOf(0L) }
+    val (totalExtra, totalHoursE, totalMinutesE) = convertMillisToTime(sumMillisExtra)
+
+    var sumMillisTotal by remember { mutableStateOf(0L) }
+    val (totalTime, totalHoursT, totalMinutesT) = convertMillisToTime(sumMillisTotal)
+
+    var currentPicker by remember { mutableStateOf<Pair<Int, Boolean>?>(null) }
+
+    // Arrays para estados dos time pickers
     val timePickerStateP1Initial = rememberTimePickerState(is24Hour = true)
     val timePickerStateP1Final = rememberTimePickerState(is24Hour = true)
     val timePickerStateP2Initial = rememberTimePickerState(is24Hour = true)
@@ -112,19 +112,51 @@ fun InsertScreen() {
     val timePickerStateP4Initial = rememberTimePickerState(is24Hour = true)
     val timePickerStateP4Final = rememberTimePickerState(is24Hour = true)
 
-    var sumMillisNormal by remember { mutableStateOf(0L) }
-    val (totalHoursN, totalMinutesN) = convertMillisToHoursAndMinutes(sumMillisNormal)
-    val totalNormal = convertMillisToTime(sumMillisNormal)
-
-    var sumMillisExtra by remember { mutableStateOf(0L) }
-    val (totalHoursE, totalMinutesE) = convertMillisToHoursAndMinutes(sumMillisExtra)
-    val totalExtra = convertMillisToTime(sumMillisExtra)
-
-    var sumMillisTotal by remember { mutableStateOf(0L) }
-    val (totalHoursT, totalMinutesT) = convertMillisToHoursAndMinutes(sumMillisTotal)
-    val totalTime = convertMillisToTime(sumMillisTotal)
-
-    var currentPicker by remember { mutableStateOf<Pair<Int, Boolean>?>(null) }
+    if (showCustomDatePicker) {
+        DatePickerCustom(
+            initialDate = dateSelected,
+            onDismissRequest = { showCustomDatePicker = false },
+            onCancelClick = { showCustomDatePicker = false },
+            onOKClick = { date ->
+                for (i in initialTimes.value.indices) {
+                    initialTimes.value[i] = ""
+                    finalTimes.value[i] = ""
+                }
+                dateRegistro = date.toString()
+                dateSelected = date
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        registrosRepository.recuperarRegistro(date.toString())
+                            .collect { listaRegistros ->
+                                if (listaRegistros.isNotEmpty()) {
+                                    deleteOption = true
+                                    registrosFiltrados = listaRegistros
+                                    val primeiroRegistro = registrosFiltrados[0]
+                                    initialTimes.value = arrayOf(
+                                        primeiroRegistro.initialTimeP1,
+                                        primeiroRegistro.initialTimeP2,
+                                        primeiroRegistro.initialTimeP3,
+                                        primeiroRegistro.initialTimeP4
+                                    )
+                                    finalTimes.value = arrayOf(
+                                        primeiroRegistro.finalTimeP1,
+                                        primeiroRegistro.finalTimeP2,
+                                        primeiroRegistro.finalTimeP3,
+                                        primeiroRegistro.finalTimeP4
+                                    )
+                                } else {
+                                    deleteOption = false
+                                }
+                            }
+                    } catch (e: Exception) {
+                        Log.e("InsertScreen", "Erro ao recuperar registros: ${e.message}", e)
+                    }
+                }
+                Log.d("InsertScreen", "Delete Option: $deleteOption")
+                showCustomDatePicker = false
+            }
+        )
+    }
 
     if (currentPicker != null) {
         val (periodo, isInitial) = currentPicker!!
@@ -142,38 +174,38 @@ fun InsertScreen() {
             onCancelClick = { currentPicker = null },
             onOKClick = {
                 val selectedTime = formattedTime(timePickerState.hour, timePickerState.minute)
-                when (periodo) {
-                    1 -> if (isInitial) initialTimeP1 = selectedTime else finalTimeP1 = selectedTime
-                    2 -> if (isInitial) initialTimeP2 = selectedTime else finalTimeP2 = selectedTime
-                    3 -> if (isInitial) initialTimeP3 = selectedTime else finalTimeP3 = selectedTime
-                    4 -> if (isInitial) initialTimeP4 = selectedTime else finalTimeP4 = selectedTime
+                if (isInitial) {
+                    initialTimes.value[periodo - 1] = selectedTime
+                } else {
+                    finalTimes.value[periodo - 1] = selectedTime
                 }
                 currentPicker = null
             },
             onMiliClick = { milliseconds ->
                 val selectedMillis = milliseconds
-                when (periodo) {
-                    1 -> if (isInitial) initialMillisP1 = selectedMillis else finalMillisP1 = selectedMillis
-                    2 -> if (isInitial) initialMillisP2 = selectedMillis else finalMillisP2 = selectedMillis
-                    3 -> if (isInitial) initialMillisP3 = selectedMillis else finalMillisP3 = selectedMillis
-                    4 -> if (isInitial) initialMillisP4 = selectedMillis else finalMillisP4 = selectedMillis
+                if (isInitial) {
+                    initialMillis.value = initialMillis.value.toMutableList().apply {
+                        this[periodo - 1] = selectedMillis
+                    }.toLongArray()
+                } else {
+                    finalMillis.value = finalMillis.value.toMutableList().apply {
+                        this[periodo - 1] = selectedMillis
+                    }.toLongArray()
                 }
             }
         )
     }
 
     fun updateTotalMillis() {
-        calMillisP1 =  finalMillisP1 - initialMillisP1
-        calMillisP2 =  finalMillisP2 - initialMillisP2
-        calMillisP3 =  finalMillisP3 - initialMillisP3
-        calMillisP4 =  finalMillisP4 - initialMillisP4
-
-        sumMillisNormal = calMillisP1 + calMillisP2
-        sumMillisExtra = calMillisP3 + calMillisP4
+        for (i in 0 until 4) {
+            calMillis.value[i] = finalMillis.value[i] - initialMillis.value[i]
+        }
+        sumMillisNormal = calMillis.value[0] + calMillis.value[1]
+        sumMillisExtra = calMillis.value[2] + calMillis.value[3]
         sumMillisTotal = sumMillisNormal + sumMillisExtra
     }
 
-    LaunchedEffect(finalMillisP1, finalMillisP2, finalMillisP3, finalMillisP4) {
+    LaunchedEffect(finalMillis.value) {
         updateTotalMillis()
     }
 
@@ -368,103 +400,168 @@ fun InsertScreen() {
                 .height(2.dp)
         )
         Spacer(modifier = Modifier.height(25.dp))
-        // Campos para Período 1
-        PeriodTime(
-            text = "MANHÃ",
-            initialTime = initialTimeP1,
-            finalTime = finalTimeP1,
-            onInitialTimeClick = { currentPicker = Pair(1, true) },
-            onFinalTimeClick = { currentPicker = Pair(1, false) }
-        )
+
+        val periodTexts = listOf("MANHÃ", "TARDE", "EXTRA", "EXTRA")
+
+        for (i in periodTexts.indices) {
+            PeriodTime(
+                text = periodTexts[i],
+                initialTime = initialTimes.value[i],
+                finalTime = finalTimes.value[i],
+                onInitialTimeClick = { currentPicker = Pair(i + 1, true) },
+                onFinalTimeClick = { currentPicker = Pair(i + 1, false) }
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
-        // Campos para Período 2
-        PeriodTime(
-            text = "TARDE",
-            initialTime = initialTimeP2,
-            finalTime = finalTimeP2,
-            onInitialTimeClick = { currentPicker = Pair(2, true) },
-            onFinalTimeClick = { currentPicker = Pair(2, false) }
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-        // Campos para Período 3
-        PeriodTime(
-            text = "EXTRA",
-            initialTime = initialTimeP3,
-            finalTime = finalTimeP3,
-            onInitialTimeClick = { currentPicker = Pair(3, true) },
-            onFinalTimeClick = { currentPicker = Pair(3, false) }
-        )
-        Spacer(modifier = Modifier.height(20.dp))
-        // Campos para Período 4
-        PeriodTime(
-            text = "EXTRA",
-            initialTime = initialTimeP4,
-            finalTime = finalTimeP4,
-            onInitialTimeClick = { currentPicker = Pair(4, true) },
-            onFinalTimeClick = { currentPicker = Pair(4, false) }
-        )
-        Spacer(modifier = Modifier.height(20.dp))
+
         Column(
             modifier = Modifier
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(onClick = {
-                var message = true
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = Azul1,
+                                shape = CircleShape
+                            )
+                            .size(45.dp)
+                            .clickable {
+                                var message = true
 
-                scope.launch(Dispatchers.IO) {
-                    if (initialTimeP1.isEmpty() || finalTimeP1.isEmpty()) {
-                        message = false
-                    } else if (dateRegistro == "") {
-                        registrosRepository.salvarRegistros(
-                            data = "${LocalDate.now()}",
-                            initialTimeP1, finalTimeP1,
-                            initialTimeP2, finalTimeP2,
-                            initialTimeP3, finalTimeP3,
-                            initialTimeP4, finalTimeP4,
-                            totalNormal, totalExtra, totalTime
+                                scope.launch(Dispatchers.IO) {
+                                    if (initialTimes.value[0].isEmpty() || finalTimes.value[0].isEmpty()) {
+                                        message = false
+                                    } else if (dateRegistro == "") {
+                                        registrosRepository.salvarRegistros(
+                                            "${LocalDate.now()}",
+                                            initialTimes.value[0], finalTimes.value[0],
+                                            initialTimes.value[1], finalTimes.value[1],
+                                            initialTimes.value[2], finalTimes.value[2],
+                                            initialTimes.value[3], finalTimes.value[3],
+                                            totalNormal, totalExtra, totalTime
+                                        )
+                                        dateSelected = LocalDate.now()
+                                        for (i in initialTimes.value.indices) {
+                                            initialTimes.value[i] = ""
+                                            finalTimes.value[i] = ""
+                                        }
+                                        for (i in initialMillis.value.indices) {
+                                            initialMillis.value[i] = 0L
+                                            finalMillis.value[i] = 0L
+                                            calMillis.value[i] = 0L
+                                        }
+                                        sumMillisTotal = 0L
+                                        sumMillisNormal = 0L
+                                        sumMillisExtra = 0L
+                                        message = true
+                                    } else {
+                                        registrosRepository.salvarRegistros(
+                                            dateRegistro,
+                                            initialTimes.value[0], finalTimes.value[0],
+                                            initialTimes.value[1], finalTimes.value[1],
+                                            initialTimes.value[2], finalTimes.value[2],
+                                            initialTimes.value[3], finalTimes.value[3],
+                                            totalNormal, totalExtra, totalTime
+                                        )
+                                        dateSelected = LocalDate.now()
+                                        for (i in initialTimes.value.indices) {
+                                            initialTimes.value[i] = ""
+                                            finalTimes.value[i] = ""
+                                        }
+                                        for (i in initialMillis.value.indices) {
+                                            initialMillis.value[i] = 0L
+                                            finalMillis.value[i] = 0L
+                                            calMillis.value[i] = 0L
+                                        }
+                                        sumMillisTotal = 0L
+                                        sumMillisNormal = 0L
+                                        sumMillisExtra = 0L
+                                        message = true
+                                    }
+                                }
+
+                                scope.launch(Dispatchers.Main) {
+                                    if (message) {
+                                        Toast.makeText(
+                                            context,
+                                            "Dados Salvos com Sucesso!",
+                                            Toast.LENGTH_SHORT
+                                        )
+                                            .show()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Preencha os campos obrigatórios",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_save),
+                            contentDescription = "Salvar",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
                         )
-                        dateSelected = LocalDate.now()
-                        initialTimeP1 = ""
-                        finalTimeP1 = ""
-                        initialTimeP2 = ""
-                        finalTimeP2 = ""
-                        initialTimeP3 = ""
-                        finalTimeP3 = ""
-                        initialTimeP4 = ""
-                        finalTimeP4 = ""
-                        message = true
-                    } else {
-                        registrosRepository.salvarRegistros(
-                            dateRegistro,
-                            initialTimeP1, finalTimeP1,
-                            initialTimeP2, finalTimeP2,
-                            initialTimeP3, finalTimeP3,
-                            initialTimeP4, finalTimeP4,
-                            totalNormal, totalExtra, totalTime
-                        )
-                        dateSelected = LocalDate.now()
-                        initialTimeP1 = ""
-                        finalTimeP1 = ""
-                        initialTimeP2 = ""
-                        finalTimeP2 = ""
-                        initialTimeP3 = ""
-                        finalTimeP3 = ""
-                        initialTimeP4 = ""
-                        finalTimeP4 = ""
-                        message = true
                     }
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = "Salvar",
+                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = Azul1
+                    )
                 }
 
-                scope.launch(Dispatchers.Main) {
-                    if (message) {
-                        Toast.makeText(context, "Dados Salvos com Sucesso!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Preencha os campos obrigatórios", Toast.LENGTH_SHORT).show()
+                if (deleteOption) {
+                    Spacer(modifier = Modifier.width(16.dp)) // Espaço entre os botões
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = Vermelho,
+                                    shape = CircleShape
+                                )
+                                .size(45.dp)
+                                .clickable {
+                                    Toast.makeText(context, "Registro Deletado", Toast.LENGTH_SHORT)
+                                        .show()
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_delete),
+                                contentDescription = "Deletar",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(5.dp))
+                        Text(
+                            text = "Deletar",
+                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center,
+                            color = Vermelho
+                        )
                     }
                 }
-            }) {
-                Text("Salvar Registro")
             }
         }
     }
@@ -489,15 +586,12 @@ fun getMonthAbbreviation(month: Int): String {
     }
 }
 
-fun convertMillisToHoursAndMinutes(totalMillis: Long): Pair<Int, Int> {
-    val hours = (totalMillis / 1000) / 3600 // 1 hora = 3600 segundos = 3.600.000 milissegundos
-    val minutes = ((totalMillis / 1000) % 3600) / 60 // Resto da divisão por 3600 para obter os minutos
-    return Pair(hours.toInt(), minutes.toInt())
-}
-
 @SuppressLint("DefaultLocale")
-fun convertMillisToTime(totalMillis: Long): String {
+fun convertMillisToTime(totalMillis: Long): Triple<String, Int, Int> {
+
     val hours = (totalMillis / 1000) / 3600 // 1 hora = 3600 segundos = 3.600.000 milissegundos
     val minutes = ((totalMillis / 1000) % 3600) / 60 // Resto da divisão por 3600 para obter os minutos
-    return String.format("%02dh %02dmin", hours, minutes)
+    val formattedTime = String.format("%02dh %02dmin", hours, minutes)
+
+    return Triple(formattedTime, hours.toInt(), minutes.toInt())
 }

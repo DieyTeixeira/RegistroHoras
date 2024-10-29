@@ -1,14 +1,13 @@
 package com.dieyteixeira.registrohoras.datasource
 
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import com.dieyteixeira.registrohoras.model.Registro
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.time.LocalDate
+import kotlinx.coroutines.flow.callbackFlow
 
 class DataSource {
 
@@ -54,19 +53,53 @@ class DataSource {
         }
     }
 
-    fun recuperarRegistro(): Flow<MutableList<Registro>> {
+    fun recuperarRegistro(data: String): Flow<MutableList<Registro>> = callbackFlow {
+        Log.d("DataSource", "Iniciando recuperação de registros para a data: $data")
 
-        val listaRegistros: MutableList<Registro> = mutableListOf()
+        val listener = db.collection("registros")
+            .whereEqualTo("data", data)
+            .addSnapshotListener { querySnapshot, error ->
+                if (error != null) {
+                    Log.e("DataSource", "Erro ao recuperar dados: ${error.message}", error)
+                    // Envia o erro para o coletor e fecha o fluxo
+                    close(error)
+                    return@addSnapshotListener
+                }
 
-        db.collection("registros").get().addOnCompleteListener { querySnapshot ->
-            if (querySnapshot.isSuccessful) {
-                for (documento in querySnapshot.result) {
-                    val data = documento.toObject(Registro::class.java)
-                    listaRegistros.add(data)
-                    _registroCompleto.value = listaRegistros
+                Log.d("DataSource", "Consulta bem-sucedida para a data: $data")
+
+                if (!(querySnapshot == null || querySnapshot.isEmpty)) {
+                    Log.d("DataSource", "Documentos encontrados: ${querySnapshot.size()}")
+
+                    val listaRegistros: MutableList<Registro> = mutableListOf()
+                    querySnapshot.forEach { documento ->
+                        val dataBanco = documento.toObject(Registro::class.java)
+
+                        // Log para verificar a estrutura do objeto recebido
+                        Log.d("DataSource", "Registro recebido: $dataBanco")
+
+                        // Adiciona o registro à lista
+                        listaRegistros.add(dataBanco)
+                    }
+
+                    // Envia a lista para o coletor
+                    if (listaRegistros.isNotEmpty()) {
+                        Log.d("DataSource", "Total de registros enviados: ${listaRegistros.size}")
+                        trySend(listaRegistros).isSuccess
+                    } else {
+                        Log.d("DataSource", "Nenhum registro encontrado para a data: $data")
+                        trySend(listaRegistros).isSuccess // Envia uma lista vazia se nenhum registro for encontrado
+                    }
+                } else {
+                    Log.d("DataSource", "Nenhuma consulta ou resultados vazios para a data: $data")
+                    trySend(mutableListOf()).isSuccess // Envia uma lista vazia
                 }
             }
+
+        // Retornar um fechamento do listener quando não houver mais coletores
+        awaitClose {
+            Log.d("DataSource", "Fechando o listener para a recuperação de registros.")
+            listener.remove()
         }
-        return registroCompleto
     }
 }

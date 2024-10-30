@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.dieyteixeira.registrohoras.ui.theme.Azul1
@@ -34,8 +35,8 @@ fun TimePickerCustom(
     timeState: TimePickerState,
     onDismissRequest: () -> Unit,
     onCancelClick: () -> Unit,
-    onOKClick: () -> Unit,
-    onMiliClick: (Long) -> Unit = {}
+    onOKClick: (Long) -> Unit = {},
+//    onMiliClick: (Long) -> Unit = {}
 ) {
 
     Dialog(
@@ -60,7 +61,9 @@ fun TimePickerCustom(
                         .fillMaxWidth()
                         .padding(16.dp),
                     text = "Selecione o horário",
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp
+                    )
                 )
 
                 TimePicker(
@@ -94,8 +97,8 @@ fun TimePickerCustom(
                             val hour = timeState.hour
                             val minute = timeState.minute
                             val milliseconds = convertToMilliseconds(hour, minute)
-                            onMiliClick(milliseconds)
-                            onOKClick()
+//                            onMiliClick(milliseconds)
+                            onOKClick(milliseconds)
                         }
                     ) {
                         Text(

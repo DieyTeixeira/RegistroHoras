@@ -71,10 +71,9 @@ fun InsertScreen() {
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var enabledFind by remember { mutableStateOf(false) }
     val registrosRepository = RegistrosRepository()
-
     var registrosFiltrados by remember { mutableStateOf(emptyList<Registro>()) }
-
     var deleteOption by remember { mutableStateOf(false) }
 
     // variáveis para salvar dados no banco de dados
@@ -82,23 +81,21 @@ fun InsertScreen() {
     var dateRegistro by remember { mutableStateOf("") }
     var showCustomDatePicker by remember { mutableStateOf(false) }
 
-    // Inicializando arrays para armazenar tempos iniciais e finais
-    val initialTimes = remember { mutableStateOf(Array(4) { "" }) }
-    val finalTimes = remember { mutableStateOf(Array(4) { "" }) }
-
     // Arrays para armazenar milissegundos
     val initialMillis = remember { mutableStateOf(LongArray(4) { 0L }) }
     val finalMillis = remember { mutableStateOf(LongArray(4) { 0L }) }
     val calMillis = remember { mutableStateOf(LongArray(4) { 0L }) }
 
+    // Converte os valores de initialMillis para tempo legível
+    val initialTimes = convertMillisArrayToTimeString(initialMillis.value)
+    val finalTimes = convertMillisArrayToTimeString(finalMillis.value)
+
     var sumMillisNormal by remember { mutableStateOf(0L) }
-    val (totalNormal, totalHoursN, totalMinutesN) = convertMillisToTime(sumMillisNormal)
-
     var sumMillisExtra by remember { mutableStateOf(0L) }
-    val (totalExtra, totalHoursE, totalMinutesE) = convertMillisToTime(sumMillisExtra)
-
     var sumMillisTotal by remember { mutableStateOf(0L) }
-    val (totalTime, totalHoursT, totalMinutesT) = convertMillisToTime(sumMillisTotal)
+    val (totalNormal,_,_) = convertMillisToTime(sumMillisNormal)
+    val (totalExtra,_,_) = convertMillisToTime(sumMillisExtra)
+    val (_, totalHoursT, totalMinutesT) = convertMillisToTime(sumMillisTotal)
 
     var currentPicker by remember { mutableStateOf<Pair<Int, Boolean>?>(null) }
 
@@ -112,38 +109,40 @@ fun InsertScreen() {
     val timePickerStateP4Initial = rememberTimePickerState(is24Hour = true)
     val timePickerStateP4Final = rememberTimePickerState(is24Hour = true)
 
+    fun updateTotalMillis() {
+        for (i in 0 until 4) {
+            calMillis.value[i] = finalMillis.value[i] - initialMillis.value[i]
+        }
+        sumMillisNormal = calMillis.value[0] + calMillis.value[1]
+        sumMillisExtra = calMillis.value[2] + calMillis.value[3]
+        sumMillisTotal = sumMillisNormal + sumMillisExtra
+    }
+
     if (showCustomDatePicker) {
         DatePickerCustom(
             initialDate = dateSelected,
             onDismissRequest = { showCustomDatePicker = false },
             onCancelClick = { showCustomDatePicker = false },
             onOKClick = { date ->
-                for (i in initialTimes.value.indices) {
-                    initialTimes.value[i] = ""
-                    finalTimes.value[i] = ""
-                }
                 dateRegistro = date.toString()
                 dateSelected = date
                 scope.launch(Dispatchers.IO) {
                     try {
                         registrosRepository.recuperarRegistro(date.toString())
                             .collect { listaRegistros ->
-                                if (listaRegistros.isNotEmpty()) {
+                                if (listaRegistros.isNotEmpty() && enabledFind) {
                                     deleteOption = true
                                     registrosFiltrados = listaRegistros
                                     val primeiroRegistro = registrosFiltrados[0]
-                                    initialTimes.value = arrayOf(
-                                        primeiroRegistro.initialTimeP1,
-                                        primeiroRegistro.initialTimeP2,
-                                        primeiroRegistro.initialTimeP3,
-                                        primeiroRegistro.initialTimeP4
-                                    )
-                                    finalTimes.value = arrayOf(
-                                        primeiroRegistro.finalTimeP1,
-                                        primeiroRegistro.finalTimeP2,
-                                        primeiroRegistro.finalTimeP3,
-                                        primeiroRegistro.finalTimeP4
-                                    )
+                                    initialMillis.value[0] = primeiroRegistro.initialMillisP1
+                                    initialMillis.value[1] = primeiroRegistro.initialMillisP2
+                                    initialMillis.value[2] = primeiroRegistro.initialMillisP3
+                                    initialMillis.value[3] = primeiroRegistro.initialMillisP4
+                                    finalMillis.value[0] = primeiroRegistro.finalMillisP1
+                                    finalMillis.value[1] = primeiroRegistro.finalMillisP2
+                                    finalMillis.value[2] = primeiroRegistro.finalMillisP3
+                                    finalMillis.value[3] = primeiroRegistro.finalMillisP4
+                                    updateTotalMillis()
                                 } else {
                                     deleteOption = false
                                 }
@@ -172,37 +171,26 @@ fun InsertScreen() {
             timeState = timePickerState,
             onDismissRequest = { currentPicker = null },
             onCancelClick = { currentPicker = null },
-            onOKClick = {
-                val selectedTime = formattedTime(timePickerState.hour, timePickerState.minute)
-                if (isInitial) {
-                    initialTimes.value[periodo - 1] = selectedTime
-                } else {
-                    finalTimes.value[periodo - 1] = selectedTime
-                }
-                currentPicker = null
-            },
-            onMiliClick = { milliseconds ->
+            onOKClick = { milliseconds ->
                 val selectedMillis = milliseconds
                 if (isInitial) {
                     initialMillis.value = initialMillis.value.toMutableList().apply {
                         this[periodo - 1] = selectedMillis
                     }.toLongArray()
+                    currentPicker = null
                 } else {
-                    finalMillis.value = finalMillis.value.toMutableList().apply {
-                        this[periodo - 1] = selectedMillis
-                    }.toLongArray()
+                    val initialMillisForPeriod = initialMillis.value[periodo - 1]
+                    if (selectedMillis <= initialMillisForPeriod) {
+                        Toast.makeText(context, "O horário final não pode ser menor que o inicial", Toast.LENGTH_SHORT).show()
+                    } else {
+                        finalMillis.value = finalMillis.value.toMutableList().apply {
+                            this[periodo - 1] = selectedMillis
+                        }.toLongArray()
+                        currentPicker = null
+                    }
                 }
             }
         )
-    }
-
-    fun updateTotalMillis() {
-        for (i in 0 until 4) {
-            calMillis.value[i] = finalMillis.value[i] - initialMillis.value[i]
-        }
-        sumMillisNormal = calMillis.value[0] + calMillis.value[1]
-        sumMillisExtra = calMillis.value[2] + calMillis.value[3]
-        sumMillisTotal = sumMillisNormal + sumMillisExtra
     }
 
     LaunchedEffect(finalMillis.value) {
@@ -266,7 +254,11 @@ fun InsertScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (dateSelected.dayOfMonth < 10) "0${dateSelected.dayOfMonth}" else "${dateSelected.dayOfMonth}",
+                            text = if (dateSelected.dayOfMonth < 10) {
+                                "0${dateSelected.dayOfMonth}"
+                            } else {
+                                "${dateSelected.dayOfMonth}"
+                            },
                             fontSize = 38.sp,
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.White
@@ -291,6 +283,7 @@ fun InsertScreen() {
                                 .size(20.dp)
                                 .clickable {
                                     showCustomDatePicker = true
+                                    enabledFind = true
                                 }
                         )
                     }
@@ -323,7 +316,7 @@ fun InsertScreen() {
                         )
                         Text(
                             text = if (totalMinutesT < 10) "0${totalMinutesT}min" else "${totalMinutesT}min",
-                            fontSize = 23.sp,
+                            fontSize = 30.sp,
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.White,
                             modifier = Modifier
@@ -348,13 +341,7 @@ fun InsertScreen() {
                                     .padding(horizontal = 5.dp)
                             ) {
                                 Text(
-                                    text = if (totalHoursN < 10) "0${totalHoursN}h" else "${totalHoursN}h",
-                                    fontSize = 14.sp,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = if (totalMinutesN < 10) "0${totalMinutesN}min" else "${totalMinutesN}min",
+                                    text = totalNormal,
                                     fontSize = 14.sp,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color.White
@@ -375,13 +362,7 @@ fun InsertScreen() {
                                     .padding(horizontal = 5.dp)
                             ) {
                                 Text(
-                                    text = if (totalHoursE < 10) "0${totalHoursE}h" else "${totalHoursE}h",
-                                    fontSize = 14.sp,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = if (totalMinutesE < 10) "0${totalMinutesE}min" else "${totalMinutesE}min",
+                                    text = totalExtra,
                                     fontSize = 14.sp,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = Color.White
@@ -406,8 +387,8 @@ fun InsertScreen() {
         for (i in periodTexts.indices) {
             PeriodTime(
                 text = periodTexts[i],
-                initialTime = initialTimes.value[i],
-                finalTime = finalTimes.value[i],
+                initialTime = initialTimes[i],
+                finalTime = finalTimes[i],
                 onInitialTimeClick = { currentPicker = Pair(i + 1, true) },
                 onFinalTimeClick = { currentPicker = Pair(i + 1, false) }
             )
@@ -439,45 +420,19 @@ fun InsertScreen() {
                                 var message = true
 
                                 scope.launch(Dispatchers.IO) {
-                                    if (initialTimes.value[0].isEmpty() || finalTimes.value[0].isEmpty()) {
+                                    if (initialMillis.value[0] == 0L || finalMillis.value[0] == 0L) {
                                         message = false
-                                    } else if (dateRegistro == "") {
-                                        registrosRepository.salvarRegistros(
-                                            "${LocalDate.now()}",
-                                            initialTimes.value[0], finalTimes.value[0],
-                                            initialTimes.value[1], finalTimes.value[1],
-                                            initialTimes.value[2], finalTimes.value[2],
-                                            initialTimes.value[3], finalTimes.value[3],
-                                            totalNormal, totalExtra, totalTime
-                                        )
-                                        dateSelected = LocalDate.now()
-                                        for (i in initialTimes.value.indices) {
-                                            initialTimes.value[i] = ""
-                                            finalTimes.value[i] = ""
-                                        }
-                                        for (i in initialMillis.value.indices) {
-                                            initialMillis.value[i] = 0L
-                                            finalMillis.value[i] = 0L
-                                            calMillis.value[i] = 0L
-                                        }
-                                        sumMillisTotal = 0L
-                                        sumMillisNormal = 0L
-                                        sumMillisExtra = 0L
-                                        message = true
                                     } else {
                                         registrosRepository.salvarRegistros(
-                                            dateRegistro,
-                                            initialTimes.value[0], finalTimes.value[0],
-                                            initialTimes.value[1], finalTimes.value[1],
-                                            initialTimes.value[2], finalTimes.value[2],
-                                            initialTimes.value[3], finalTimes.value[3],
-                                            totalNormal, totalExtra, totalTime
+                                            if (dateRegistro.isEmpty()) "${LocalDate.now()}" else dateRegistro,
+                                            initialMillis.value[0], finalMillis.value[0],
+                                            initialMillis.value[1], finalMillis.value[1],
+                                            initialMillis.value[2], finalMillis.value[2],
+                                            initialMillis.value[3], finalMillis.value[3],
+                                            sumMillisNormal, sumMillisExtra, sumMillisTotal
                                         )
+                                        enabledFind = false
                                         dateSelected = LocalDate.now()
-                                        for (i in initialTimes.value.indices) {
-                                            initialTimes.value[i] = ""
-                                            finalTimes.value[i] = ""
-                                        }
                                         for (i in initialMillis.value.indices) {
                                             initialMillis.value[i] = 0L
                                             finalMillis.value[i] = 0L
@@ -486,6 +441,7 @@ fun InsertScreen() {
                                         sumMillisTotal = 0L
                                         sumMillisNormal = 0L
                                         sumMillisExtra = 0L
+                                        deleteOption = false
                                         message = true
                                     }
                                 }
@@ -496,8 +452,7 @@ fun InsertScreen() {
                                             context,
                                             "Dados Salvos com Sucesso!",
                                             Toast.LENGTH_SHORT
-                                        )
-                                            .show()
+                                        ).show()
                                     } else {
                                         Toast.makeText(
                                             context,
@@ -527,7 +482,7 @@ fun InsertScreen() {
                 }
 
                 if (deleteOption) {
-                    Spacer(modifier = Modifier.width(16.dp)) // Espaço entre os botões
+                    Spacer(modifier = Modifier.width(20.dp))
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -540,8 +495,36 @@ fun InsertScreen() {
                                 )
                                 .size(45.dp)
                                 .clickable {
-                                    Toast.makeText(context, "Registro Deletado", Toast.LENGTH_SHORT)
-                                        .show()
+                                    scope.launch(Dispatchers.IO) {
+                                        registrosRepository.deletarRegistro(dateRegistro)
+                                        enabledFind = false
+                                        dateSelected = LocalDate.now()
+                                        for (i in initialMillis.value.indices) {
+                                            initialMillis.value[i] = 0L
+                                            finalMillis.value[i] = 0L
+                                            calMillis.value[i] = 0L
+                                        }
+                                        sumMillisTotal = 0L
+                                        sumMillisNormal = 0L
+                                        sumMillisExtra = 0L
+                                        deleteOption = false
+                                    }
+
+                                    scope.launch(Dispatchers.Main) {
+                                        if (deleteOption) {
+                                            Toast.makeText(
+                                                context,
+                                                "Erro ao deletar registro",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Registro deletado",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -589,9 +572,19 @@ fun getMonthAbbreviation(month: Int): String {
 @SuppressLint("DefaultLocale")
 fun convertMillisToTime(totalMillis: Long): Triple<String, Int, Int> {
 
-    val hours = (totalMillis / 1000) / 3600 // 1 hora = 3600 segundos = 3.600.000 milissegundos
-    val minutes = ((totalMillis / 1000) % 3600) / 60 // Resto da divisão por 3600 para obter os minutos
-    val formattedTime = String.format("%02dh %02dmin", hours, minutes)
+    val hours = (totalMillis / 1000) / 3600
+    val minutes = ((totalMillis / 1000) % 3600) / 60
+    val formattedTime = String.format("%02dh%02dmin", hours, minutes)
 
     return Triple(formattedTime, hours.toInt(), minutes.toInt())
+}
+
+@SuppressLint("DefaultLocale")
+fun convertMillisArrayToTimeString(millisArray: LongArray): List<String> {
+    return millisArray.map { millis ->
+        if (millis == 0L) return@map "-"
+        val hours = (millis / 1000) / 3600
+        val minutes = ((millis / 1000) % 3600) / 60
+        String.format("%02dh %02dmin", hours, minutes)
+    }
 }

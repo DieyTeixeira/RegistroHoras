@@ -136,7 +136,7 @@ fun HomeScreen() {
             state = pagerState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 10.dp),
+                .padding(top = 5.dp),
             verticalAlignment = Alignment.Top
         ) { page ->
             when (page) {
@@ -160,9 +160,6 @@ fun HomeScreen() {
                         InsertScreen()
                     }
                 }
-                2 -> {
-
-                }
             }
         }
     }
@@ -183,11 +180,6 @@ enum class HomeTabs(
         unselectedIcon = Icons.Outlined.DateRange,
         selectedIcon = Icons.Filled.DateRange,
         text = "Lançamentos"
-    ),
-    Settings(
-        unselectedIcon = Icons.Outlined.Settings,
-        selectedIcon = Icons.Filled.Settings,
-        text = "Ajuste"
     )
 }
 

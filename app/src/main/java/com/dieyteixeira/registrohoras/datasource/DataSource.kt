@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import java.time.LocalDate
 
 class DataSource {
 
@@ -18,32 +19,32 @@ class DataSource {
 
     fun salvarRegistro(
         data: String,
-        initialTimeP1: String,
-        finalTimeP1: String,
-        initialTimeP2: String,
-        finalTimeP2: String,
-        initialTimeP3: String,
-        finalTimeP3: String,
-        initialTimeP4: String,
-        finalTimeP4: String,
-        totalNormal: String,
-        totalExtra: String,
-        totalTime: String
+        initialMillisP1: Long,
+        finalMillisP1: Long,
+        initialMillisP2: Long,
+        finalMillisP2: Long,
+        initialMillisP3: Long,
+        finalMillisP3: Long,
+        initialMillisP4: Long,
+        finalMillisP4: Long,
+        sumMillisNormal: Long,
+        sumMillisExtra: Long,
+        sumMillisTotal: Long
     ) {
 
         val registrosMap = hashMapOf(
             "data" to data,
-            "initialTimeP1" to initialTimeP1,
-            "finalTimeP1" to finalTimeP1,
-            "initialTimeP2" to initialTimeP2,
-            "finalTimeP2" to finalTimeP2,
-            "initialTimeP3" to initialTimeP3,
-            "finalTimeP3" to finalTimeP3,
-            "initialTimeP4" to initialTimeP4,
-            "finalTimeP4" to finalTimeP4,
-            "totalNormal" to totalNormal,
-            "totalExtra" to totalExtra,
-            "totalTime" to totalTime
+            "initialMillisP1" to initialMillisP1,
+            "finalMillisP1" to finalMillisP1,
+            "initialMillisP2" to initialMillisP2,
+            "finalMillisP2" to finalMillisP2,
+            "initialMillisP3" to initialMillisP3,
+            "finalMillisP3" to finalMillisP3,
+            "initialMillisP4" to initialMillisP4,
+            "finalMillisP4" to finalMillisP4,
+            "sumMillisNormal" to sumMillisNormal,
+            "sumMillisExtra" to sumMillisExtra,
+            "sumMillisTotal" to sumMillisTotal
         )
 
         db.collection("registros").document(data).set(registrosMap).addOnCompleteListener {
@@ -99,6 +100,45 @@ class DataSource {
         // Retornar um fechamento do listener quando não houver mais coletores
         awaitClose {
             Log.d("DataSource", "Fechando o listener para a recuperação de registros.")
+            listener.remove()
+        }
+    }
+
+    fun deletarRegistro(data: String) {
+        db.collection("registros").document(data).delete()
+            .addOnCompleteListener {
+                Log.d("DataSource", "Registro deletado com sucesso")
+            }.addOnFailureListener { e ->
+                Log.e("DataSource", "Erro ao deletar registro", e)
+            }
+    }
+
+    fun recuperarRegistrosEntreDatas(dataInicio: String, dataFim: String): Flow<MutableList<Registro>> = callbackFlow {
+        Log.d("DataSource", "Iniciando recuperação de registros entre $dataInicio e $dataFim")
+
+        val listener = db.collection("registros")
+            .whereGreaterThanOrEqualTo("data", dataInicio)
+            .whereLessThanOrEqualTo("data", dataFim)
+            .addSnapshotListener { querySnapshot, error ->
+                if (error != null) {
+                    Log.e("DataSource", "Erro ao recuperar dados: ${error.message}", error)
+                    close(error)
+                    return@addSnapshotListener
+                }
+
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    val listaRegistros: MutableList<Registro> = mutableListOf()
+                    querySnapshot.forEach { documento ->
+                        val registro = documento.toObject(Registro::class.java)
+                        listaRegistros.add(registro)
+                    }
+                    trySend(listaRegistros).isSuccess
+                } else {
+                    trySend(mutableListOf()).isSuccess
+                }
+            }
+
+        awaitClose {
             listener.remove()
         }
     }

@@ -12,36 +12,45 @@ class RegistrosRepository {
 
     fun salvarRegistros(
         data: String,
-        initialTimeP1: String,
-        finalTimeP1: String,
-        initialTimeP2: String,
-        finalTimeP2: String,
-        initialTimeP3: String,
-        finalTimeP3: String,
-        initialTimeP4: String,
-        finalTimeP4: String,
-        totalNormal: String,
-        totalExtra: String,
-        totalTime: String
+        initialMillisP1: Long,
+        finalMillisP1: Long,
+        initialMillisP2: Long,
+        finalMillisP2: Long,
+        initialMillisP3: Long,
+        finalMillisP3: Long,
+        initialMillisP4: Long,
+        finalMillisP4: Long,
+        sumMillisNormal: Long,
+        sumMillisExtra: Long,
+        sumMillisTotal: Long
     ) {
         dataSource.salvarRegistro(
             data,
-            initialTimeP1,
-            finalTimeP1,
-            initialTimeP2,
-            finalTimeP2,
-            initialTimeP3,
-            finalTimeP3,
-            initialTimeP4,
-            finalTimeP4,
-            totalNormal,
-            totalExtra,
-            totalTime
+            initialMillisP1,
+            finalMillisP1,
+            initialMillisP2,
+            finalMillisP2,
+            initialMillisP3,
+            finalMillisP3,
+            initialMillisP4,
+            finalMillisP4,
+            sumMillisNormal,
+            sumMillisExtra,
+            sumMillisTotal
         )
     }
 
     fun recuperarRegistro(data: String): Flow<MutableList<Registro>> {
         Log.d("RegistrosRepository", "Iniciando recuperação de registros para a data: $data")
         return dataSource.recuperarRegistro(data)
+    }
+
+    fun deletarRegistro(data: String) {
+        Log.d("RegistrosRepository", "Iniciando deleção do registro para a data: $data")
+        dataSource.deletarRegistro(data)
+    }
+
+    fun recuperarRegistrosEntreDatas(dataInicio: String, dataFim: String): Flow<MutableList<Registro>> {
+        return dataSource.recuperarRegistrosEntreDatas(dataInicio, dataFim)
     }
 }

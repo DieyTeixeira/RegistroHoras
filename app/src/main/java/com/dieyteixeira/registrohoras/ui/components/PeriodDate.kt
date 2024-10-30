@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,90 +20,83 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dieyteixeira.registrohoras.R
-import com.dieyteixeira.registrohoras.ui.theme.Azul1
 import com.dieyteixeira.registrohoras.ui.theme.Azul2
 import com.dieyteixeira.registrohoras.ui.theme.AzulDegrade
+import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun PeriodTime(
-    text: String,
-    initialTime: String,
-    finalTime: String,
-    onInitialTimeClick: () -> Unit,
-    onFinalTimeClick: () -> Unit
+fun PeriodDate(
+    initialDate: LocalDate,
+    finalDate: LocalDate,
+    onInitialDateClick: () -> Unit,
+    onFinalDateClick: () -> Unit
 ) {
+
+    val initialDateDay = if (initialDate.dayOfMonth < 10) {
+        "0${initialDate.dayOfMonth}"
+    } else {
+        "${initialDate.dayOfMonth}"
+    }
+    val initialDateMonth = if (initialDate.monthValue < 10) {
+        "0${initialDate.monthValue}"
+    } else {
+        "${initialDate.monthValue}"
+    }
+    val initialDateYear = initialDate.year
+    
+    val finalDateDay = if (finalDate.dayOfMonth < 10) {
+        "0${finalDate.dayOfMonth}"
+    } else {
+        "${finalDate.dayOfMonth}"
+    }
+    val finalDateMonth = if (finalDate.monthValue < 10) {
+        "0${finalDate.monthValue}"
+    } else {
+        "${finalDate.monthValue}"
+    }
+    val finalDateYear = finalDate.year
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
             .height(60.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_double_arrow_left),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(22.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .width(70.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = text,
-                        color = Azul1,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 18.sp
-                        ),
-                        textAlign = TextAlign.Center
-                    )
-                }
-                Image(
-                    painter = painterResource(id = R.drawable.ic_double_arrow_right),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(22.dp)
-                )
-            }
-            Box(
+            Column(
                 modifier = Modifier
-                    .padding(end = 230.dp)
                     .height(35.dp)
-                    .width(125.dp)
+                    .width(120.dp)
                     .background(
                         color = Color.White,
                         shape = RoundedCornerShape(100)
                     )
                     .clickable(
-                        onClick = onInitialTimeClick,
+                        onClick = onInitialDateClick,
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
                     ),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = initialTime,
+                    text = "${initialDateDay}/${initialDateMonth}/${initialDateYear}",
                     color = Azul2,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 18.sp
@@ -110,24 +104,25 @@ fun PeriodTime(
                     textAlign = TextAlign.Center
                 )
             }
-            Box(
+            Spacer(modifier = Modifier.width(15.dp))
+            Column(
                 modifier = Modifier
-                    .padding(start = 230.dp)
                     .height(35.dp)
-                    .width(125.dp)
+                    .width(120.dp)
                     .background(
                         color = Color.White,
                         shape = RoundedCornerShape(100)
                     )
                     .clickable(
-                        onClick = onFinalTimeClick,
+                        onClick = onFinalDateClick,
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
                     ),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = finalTime,
+                    text = "${finalDateDay}/${finalDateMonth}/${finalDateYear}",
                     color = Azul2,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontSize = 18.sp
@@ -149,12 +144,11 @@ private fun PeriodTimePreview() {
             .background(AzulDegrade),
         verticalArrangement = Arrangement.Center
     ) {
-        PeriodTime(
-            text = "MANHÃ",
-            initialTime = "08:00",
-            finalTime = "12:30",
-            onInitialTimeClick = {},
-            onFinalTimeClick = {}
+        PeriodDate(
+            initialDate = LocalDate.of(1900,1,1),
+            finalDate = LocalDate.of(1900,1,1),
+            onInitialDateClick = {},
+            onFinalDateClick = {}
         )
     }
 }

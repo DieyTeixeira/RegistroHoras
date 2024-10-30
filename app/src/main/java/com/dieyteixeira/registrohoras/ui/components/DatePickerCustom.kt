@@ -82,7 +82,9 @@ fun DatePickerCustom(
                         .fillMaxWidth()
                         .padding(16.dp),
                     text = "Selecione a data",
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 20.sp
+                    )
                 )
                 Spacer(modifier = Modifier.height(5.dp))
 
@@ -119,7 +121,6 @@ fun DatePickerCustom(
                             .height(35.dp),
                         onClick = {
                             onOKClick(selDate.value)
-                            onDismissRequest()
                         }
                     ) {
                         Text(

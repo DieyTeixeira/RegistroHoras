@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -281,7 +282,10 @@ fun InsertScreen() {
                             tint = Azul1,
                             modifier = Modifier
                                 .size(20.dp)
-                                .clickable {
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
                                     showCustomDatePicker = true
                                     enabledFind = true
                                 }
@@ -416,7 +420,10 @@ fun InsertScreen() {
                                 shape = CircleShape
                             )
                             .size(45.dp)
-                            .clickable {
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
                                 var message = true
 
                                 scope.launch(Dispatchers.IO) {
@@ -494,7 +501,10 @@ fun InsertScreen() {
                                     shape = CircleShape
                                 )
                                 .size(45.dp)
-                                .clickable {
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
                                     scope.launch(Dispatchers.IO) {
                                         registrosRepository.deletarRegistro(dateRegistro)
                                         enabledFind = false

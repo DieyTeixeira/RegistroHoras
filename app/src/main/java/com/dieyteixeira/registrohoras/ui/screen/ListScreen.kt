@@ -1,12 +1,14 @@
 package com.dieyteixeira.registrohoras.ui.screen
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +56,7 @@ import com.dieyteixeira.registrohoras.ui.theme.AzulDegrade
 import com.dieyteixeira.registrohoras.ui.theme.Verde
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 
@@ -61,8 +65,8 @@ import java.time.LocalDate
 @Composable
 fun ListScreen() {
 
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val registrosRepository = RegistrosRepository()
     var currentPicker by remember { mutableStateOf<Boolean?>(null) }
 
@@ -147,7 +151,10 @@ fun ListScreen() {
                         shape = CircleShape
                     )
                     .size(35.dp)
-                    .clickable {
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
                         totalHorasMillis = 0L
                         totalNormalMillis = 0L
                         totalExtraMillis = 0L
@@ -158,12 +165,18 @@ fun ListScreen() {
 
                         scope.launch(Dispatchers.IO) {
                             registrosRepository.recuperarRegistrosEntreDatas(dataInicio, dataFim).collect { registros ->
-                                for (registro in registros) {
-                                    totalHorasMillis += registro.sumMillisTotal
-                                    totalNormalMillis += registro.sumMillisNormal
-                                    totalExtraMillis += registro.sumMillisExtra
+                                if (registros.isEmpty()) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Nenhum registro encontrado", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    for (registro in registros) {
+                                        totalHorasMillis += registro.sumMillisTotal
+                                        totalNormalMillis += registro.sumMillisNormal
+                                        totalExtraMillis += registro.sumMillisExtra
+                                    }
+                                    listaRegistros = registros
                                 }
-                                listaRegistros = registros
                             }
                         }
                     },
@@ -350,7 +363,10 @@ fun ListScreen() {
                                 shape = CircleShape
                             )
                             .size(45.dp)
-                            .clickable {
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
                                 showRelatorio = true
                             },
                         contentAlignment = Alignment.Center

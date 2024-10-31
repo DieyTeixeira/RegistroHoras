@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId = "com.dieyteixeira.registrohoras"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.itextpdf.itext7.core)
+    implementation(libs.slf4j.simple)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

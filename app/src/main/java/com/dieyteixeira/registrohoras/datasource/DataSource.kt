@@ -2,6 +2,7 @@ package com.dieyteixeira.registrohoras.datasource
 
 import android.util.Log
 import com.dieyteixeira.registrohoras.model.Registro
+import com.dieyteixeira.registrohoras.ui.components.nome
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -47,7 +48,7 @@ class DataSource {
             "sumMillisTotal" to sumMillisTotal
         )
 
-        db.collection("registros").document(data).set(registrosMap).addOnCompleteListener {
+        db.collection(nome).document(data).set(registrosMap).addOnCompleteListener {
             Log.d("DataSource", "Registro salvo com sucesso")
         }.addOnFailureListener {
             Log.e("DataSource", "Erro ao salvar registro", it)
@@ -57,7 +58,7 @@ class DataSource {
     fun recuperarRegistro(data: String): Flow<MutableList<Registro>> = callbackFlow {
         Log.d("DataSource", "Iniciando recuperação de registros para a data: $data")
 
-        val listener = db.collection("registros")
+        val listener = db.collection(nome)
             .whereEqualTo("data", data)
             .addSnapshotListener { querySnapshot, error ->
                 if (error != null) {
@@ -105,7 +106,7 @@ class DataSource {
     }
 
     fun deletarRegistro(data: String) {
-        db.collection("registros").document(data).delete()
+        db.collection(nome).document(data).delete()
             .addOnCompleteListener {
                 Log.d("DataSource", "Registro deletado com sucesso")
             }.addOnFailureListener { e ->
@@ -116,7 +117,7 @@ class DataSource {
     fun recuperarRegistrosEntreDatas(dataInicio: String, dataFim: String): Flow<MutableList<Registro>> = callbackFlow {
         Log.d("DataSource", "Iniciando recuperação de registros entre $dataInicio e $dataFim")
 
-        val listener = db.collection("registros")
+        val listener = db.collection(nome)
             .whereGreaterThanOrEqualTo("data", dataInicio)
             .whereLessThanOrEqualTo("data", dataFim)
             .addSnapshotListener { querySnapshot, error ->

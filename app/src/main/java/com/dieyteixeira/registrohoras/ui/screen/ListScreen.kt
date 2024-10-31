@@ -2,7 +2,6 @@ package com.dieyteixeira.registrohoras.ui.screen
 
 import android.annotation.SuppressLint
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
@@ -23,13 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,17 +49,14 @@ import com.dieyteixeira.registrohoras.ui.components.PeriodDate
 import com.dieyteixeira.registrohoras.ui.components.RelatorioDialog
 import com.dieyteixeira.registrohoras.ui.theme.Azul1
 import com.dieyteixeira.registrohoras.ui.theme.Azul2
-import com.dieyteixeira.registrohoras.ui.theme.Azul3
 import com.dieyteixeira.registrohoras.ui.theme.AzulDegrade
 import com.dieyteixeira.registrohoras.ui.theme.Verde
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
+
+@SuppressLint("AutoboxingStateCreation")
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ListScreen() {
@@ -74,9 +69,9 @@ fun ListScreen() {
     var initialDate by remember { mutableStateOf(LocalDate.now()) }
     var finalDate by remember { mutableStateOf(LocalDate.now()) }
 
-    var totalHorasMillis by remember { mutableStateOf(0L) }
-    var totalNormalMillis by remember { mutableStateOf(0L) }
-    var totalExtraMillis by remember { mutableStateOf(0L) }
+    var totalHorasMillis by remember { mutableLongStateOf(0L) }
+    var totalNormalMillis by remember { mutableLongStateOf(0L) }
+    var totalExtraMillis by remember { mutableLongStateOf(0L) }
 
     val (totalHorasTimes, totalMinutesTimes) = convertMillisToTimeGeral(totalHorasMillis)
     val (normalHorasTimes, normalMinutesTimes) = convertMillisToTimeGeral(totalNormalMillis)
@@ -102,15 +97,18 @@ fun ListScreen() {
             onDismissRequest = { currentPicker = null },
             onCancelClick = { currentPicker = null },
             onOKClick = { date ->
-                val selectedDate = date
                 if (isInitial) {
-                    initialDate = selectedDate
+                    initialDate = date
                     currentPicker = null
                 } else {
-                    if (selectedDate < initialDate) {
-                        Toast.makeText(context, "A data final não pode ser menor que a inicial", Toast.LENGTH_SHORT).show()
+                    if (date < initialDate) {
+                        Toast.makeText(
+                            context,
+                            "A data final não pode ser menor que a inicial",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
-                        finalDate = selectedDate
+                        finalDate = date
                         currentPicker = null
                     }
                 }
@@ -336,38 +334,43 @@ fun ListScreen() {
         }
         Spacer(modifier = Modifier.height(125.dp))
         if (listaRegistros.isNotEmpty()) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = Azul1,
-                            shape = CircleShape
-                        )
-                        .size(45.dp)
-                        .clickable {
-                            showRelatorio = true
-                        },
-                    contentAlignment = Alignment.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_list),
-                        contentDescription = "Relatório",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = Azul1,
+                                shape = CircleShape
+                            )
+                            .size(45.dp)
+                            .clickable {
+                                showRelatorio = true
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_list),
+                            contentDescription = "Relatório",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(5.dp))
+                    Text(
+                        text = "Relatório",
+                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = Azul1
                     )
                 }
-                Spacer(modifier = Modifier.height(5.dp))
-                Text(
-                    text = "Relatório",
-                    fontSize = 14.sp,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    color = Azul1
-                )
             }
         }
     }

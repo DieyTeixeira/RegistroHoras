@@ -163,7 +163,7 @@ fun RelatorioDialog(
                                         style = MaterialTheme.typography.titleLarge.copy(
                                             fontSize = 17.sp
                                         ),
-                                        modifier = Modifier.width(60.dp)
+                                        modifier = Modifier.width(100.dp)
                                     )
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically
@@ -193,7 +193,7 @@ fun RelatorioDialog(
                                             style = MaterialTheme.typography.titleLarge.copy(
                                                 fontSize = 17.sp
                                             ),
-                                            modifier = Modifier.width(60.dp)
+                                            modifier = Modifier.width(100.dp)
                                         )
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically

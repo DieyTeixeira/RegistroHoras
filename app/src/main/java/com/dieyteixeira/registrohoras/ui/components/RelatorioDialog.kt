@@ -113,11 +113,9 @@ fun RelatorioDialog(
                                     )
                                     .padding(15.dp, 5.dp)
                             ){
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                Column {
                                     Text(
-                                        text = "Data:  ",
+                                        text = "Data",
                                         style = MaterialTheme.typography.titleLarge.copy(
                                             fontSize = 17.sp
                                         )
@@ -159,49 +157,22 @@ fun RelatorioDialog(
                                     )
                                     .padding(15.dp, 5.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                Column {
                                     Text(
-                                        text = "Horário:",
+                                        text = "Horário",
                                         style = MaterialTheme.typography.titleLarge.copy(
                                             fontSize = 17.sp
                                         ),
                                         modifier = Modifier.width(60.dp)
                                     )
-                                    formatAndDisplayTime(
-                                        registro.initialMillisP1,
-                                        registro.finalMillisP1
-                                    )
-                                    if (registro.initialMillisP2 > 0) {
-                                        Text(
-                                            text = "  |  ",
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontSize = 17.sp
-                                            )
-                                        )
-                                        formatAndDisplayTime(
-                                            registro.initialMillisP2,
-                                            registro.finalMillisP2
-                                        )
-                                    }
-                                }
-                                if (registro.initialMillisP3 > 0) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = "Extra: ",
-                                            style = MaterialTheme.typography.titleLarge.copy(
-                                                fontSize = 17.sp
-                                            ),
-                                            modifier = Modifier.width(60.dp)
-                                        )
                                         formatAndDisplayTime(
-                                            registro.initialMillisP3,
-                                            registro.finalMillisP3
+                                            registro.initialMillisP1,
+                                            registro.finalMillisP1
                                         )
-                                        if (registro.initialMillisP4 > 0) {
+                                        if (registro.initialMillisP2 > 0) {
                                             Text(
                                                 text = "  |  ",
                                                 style = MaterialTheme.typography.titleSmall.copy(
@@ -209,9 +180,40 @@ fun RelatorioDialog(
                                                 )
                                             )
                                             formatAndDisplayTime(
-                                                registro.initialMillisP4,
-                                                registro.finalMillisP4
+                                                registro.initialMillisP2,
+                                                registro.finalMillisP2
                                             )
+                                        }
+                                    }
+                                }
+                                if (registro.initialMillisP3 > 0) {
+                                    Column {
+                                        Text(
+                                            text = "Extra",
+                                            style = MaterialTheme.typography.titleLarge.copy(
+                                                fontSize = 17.sp
+                                            ),
+                                            modifier = Modifier.width(60.dp)
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            formatAndDisplayTime(
+                                                registro.initialMillisP3,
+                                                registro.finalMillisP3
+                                            )
+                                            if (registro.initialMillisP4 > 0) {
+                                                Text(
+                                                    text = "  |  ",
+                                                    style = MaterialTheme.typography.titleSmall.copy(
+                                                        fontSize = 17.sp
+                                                    )
+                                                )
+                                                formatAndDisplayTime(
+                                                    registro.initialMillisP4,
+                                                    registro.finalMillisP4
+                                                )
+                                            }
                                         }
                                     }
                                 }
